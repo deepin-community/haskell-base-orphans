@@ -3,7 +3,7 @@
 [![Hackage Dependencies](https://img.shields.io/hackage-deps/v/base-orphans.svg)](http://packdeps.haskellers.com/reverse/base-orphans)
 [![Haskell Programming Language](https://img.shields.io/badge/language-Haskell-blue.svg)][Haskell.org]
 [![BSD3 License](http://img.shields.io/badge/license-MIT-brightgreen.svg)][tl;dr Legal: MIT]
-[![Build](https://img.shields.io/travis/haskell-compat/base-orphans.svg)](https://travis-ci.org/haskell-compat/base-orphans)
+[![Build Status](https://github.com/haskell-compat/base-orphans/workflows/Haskell-CI/badge.svg)](https://github.com/haskell-compat/base-orphans/actions?query=workflow%3AHaskell-CI)
 
 [Hackage: base-orphans]:
   http://hackage.haskell.org/package/base-orphans
@@ -52,8 +52,11 @@ To use `base-orphans`, simply `import Data.Orphans ()`.
  * `Data`, `MonadFix` and `MonadZip` instances for `Alt`, `Dual`, `First`, `Last`,
    `Product`, and `Sum`
  * `Data` and `IsList` instances for `Version` and `ZipList`
+ * `Eq{1,2}`, `Ord{1,2}`, `Show{1,2}`, and `Read{1,2}` instances for `(,,)` and `(,,,)`
  * `Eq` and `Ord` instances for `Control.Exception.ErrorCall`
  * `Eq`, `Ord`, `Read`, and `Show` instances for data types in `GHC.Generics`
+ * `Eq`, `Ord`, `Bounded`, `Enum`, and `Ix` instances for `Solo`
+ * `Eq1`, `Read1`, and `Show1` instances for `Complex`
  * `Eq1`, `Ord1`, `Read1`, and `Show1` instances for `NonEmpty`
  * `Foldable` instance for `Either`, `(,)` and `Const`
  * `Foldable` and `Traversable` instances for `Alt` from `Data.Monoid`
@@ -63,9 +66,12 @@ To use `base-orphans`, simply `import Data.Orphans ()`.
  * `Functor`, `Applicative`, `Alternative`, and `MonadPlus` instances for `ArrowMonad`
  * `Functor`, `Applicative`, `Monad`, `Alternative`, and `MonadPlus` instances
    for `Kleisli`
+ * `Ix` instances for tuples of size 6 through 15
+ * `Ix` instances for integral types in `Foreign.C.Types`, `Foreign.Ptr`, and `System.Posix.Types`
  * `Monad` instance for `(,)`
  * `Monad` instance for `WrappedMonad`
  * `MonadFail`, `Monoid`, and `Semigroup` instances for strict `ST`
+ * `MonadFix` and `MonadZip` instances for `Complex`
  * `MonadZip` instance for `Maybe`
  * `Monoid`, `Eq`, `Ord`, `Read`, and `Show` instances for `Const`
  * `Monoid` instances for `Identity` and `IO`
@@ -74,10 +80,12 @@ To use `base-orphans`, simply `import Data.Orphans ()`.
  * `Semigroup` instances for `IO`, `Event` and `Lifetime`
  * `Semigroup` instances for `V1`, `U1`, `Par1`, `Rec1`, `K1`, `M1`, `(:*:)`, and `(:.:)` from `GHC.Generics`.
    `Monoid` instances for the same types (except `V1`).
+ * `Semigroup` and `Monoid` instances for `Data.Functor.Product` and `Data.Functor.Compose`
  * `Show` instance for `Fingerprint`
  * `Storable` instance for `()`, `Complex`, and `Ratio`
  * `TestEquality` instance for `Compose`
  * `Traversable` instance for `Either`, `(,)` and `Const`
+ * `Ord` instance for `TyCon` and `TypeRep`.
  * `Typeable` instance for most data types, typeclasses, and promoted data constructors (when possible)
 
 ## What is not covered
@@ -93,6 +101,9 @@ To use `base-orphans`, simply `import Data.Orphans ()`.
 
 ## Supported versions of GHC/`base`
 
+ * `ghc-9.4.*`  / `base-4.17.*`
+ * `ghc-9.2.*`  / `base-4.16.*`
+ * `ghc-9.0.*`  / `base-4.15.*`
  * `ghc-8.10.*` / `base-4.14.*`
  * `ghc-8.8.*`  / `base-4.13.*`
  * `ghc-8.6.*`  / `base-4.12.*`

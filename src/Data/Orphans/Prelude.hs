@@ -21,7 +21,7 @@ This makes it much easier to be -Wall-compliant.
 Note that this module does not export any modules that could introduce name clashes.
 -}
 module Data.Orphans.Prelude
-#if MIN_VERSION_base(4,14,0)
+#if MIN_VERSION_base(4,16,1)
     () where
 #else
     ( module OrphansPrelude
@@ -37,7 +37,7 @@ module Data.Orphans.Prelude
     ) where
 
 import Control.Applicative as OrphansPrelude
-import Control.Arrow as OrphansPrelude hiding (first, loop, second)
+import Control.Arrow as OrphansPrelude hiding ((+++), first, loop, second)
 import Control.Category as OrphansPrelude hiding ((.), id)
 import Control.Concurrent.QSem as OrphansPrelude
 import Control.Monad as OrphansPrelude hiding (mapM, sequence)
@@ -49,7 +49,6 @@ import Data.Complex as OrphansPrelude (Complex(..))
 import Data.Data as OrphansPrelude (Data(..), Constr, DataType, mkConstr, mkDataType)
 import Data.Fixed as OrphansPrelude
 import Data.Int as OrphansPrelude
-import Data.Ix as OrphansPrelude
 import Data.List as OrphansPrelude (genericLength)
 import Data.Monoid as OrphansPrelude
   hiding ( Any(..)
@@ -68,6 +67,7 @@ import Foreign.Marshal.Pool as OrphansPrelude
 import Foreign.Ptr as OrphansPrelude
 import Foreign.Storable as OrphansPrelude
 
+import GHC.Arr as OrphansPrelude (Ix(..))
 import GHC.Base as OrphansPrelude
 import GHC.Conc as OrphansPrelude
 import GHC.Desugar as OrphansPrelude (AnnotationWrapper)
@@ -89,6 +89,7 @@ import System.Posix.Internals as OrphansPrelude
 import System.Posix.Types as OrphansPrelude
 
 import Text.Printf as OrphansPrelude
+import Text.Read as OrphansPrelude
 
 import Unsafe.Coerce as OrphansPrelude (unsafeCoerce)
 
@@ -103,6 +104,9 @@ import GHC.IO.Encoding.Failure as OrphansPrelude
 
 #  if !defined(mingw32_HOST_OS) && !defined(__GHCJS__)
 import GHC.Event as OrphansPrelude
+#   if !(MIN_VERSION_base(4,7,0))
+      hiding (step)
+#   endif
 #  endif
 # endif
 
