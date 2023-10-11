@@ -38,7 +38,7 @@ To use them, simply @import Data.Orphans ()@.
 module Data.Orphans () where
 
 #if __GLASGOW_HASKELL__ >= 701 && !(MIN_VERSION_base(4,12,0))
-import           GHC.Generics as Generics
+import           GHC.Generics as Generics hiding (prec)
 #endif
 
 #if !(MIN_VERSION_base(4,6,0))
@@ -48,11 +48,18 @@ import           Control.Monad.Instances ()
 #if !(MIN_VERSION_base(4,9,0))
 import qualified Data.Monoid as Monoid
 import           Text.ParserCombinators.ReadPrec as ReadPrec
-import           Text.Read as Read
 #endif
 
 #if MIN_VERSION_base(4,9,0) && !(MIN_VERSION_base(4,11,0))
 import qualified Control.Monad.Fail as Fail (MonadFail(..))
+#endif
+
+#if MIN_VERSION_base(4,9,0) && !(MIN_VERSION_base(4,16,0))
+import qualified Data.Functor.Product as Functor
+#endif
+
+#if MIN_VERSION_base(4,10,0) && !(MIN_VERSION_base(4,16,0))
+import           GHC.Read (expectP, paren)
 #endif
 
 #if !(MIN_VERSION_base(4,10,0))
@@ -68,6 +75,10 @@ import qualified Data.Foldable as F (Foldable(..))
 import qualified Data.Traversable as T (Traversable(..))
 #endif
 
+#if MIN_VERSION_base(4,15,0) && !(MIN_VERSION_base(4,16,0))
+import           GHC.Tuple (Solo(..))
+#endif
+
 #if __GLASGOW_HASKELL__ < 710
 import           Control.Exception as Exception
 import           Control.Monad.ST.Lazy as Lazy
@@ -80,7 +91,7 @@ import           GHC.ConsoleHandler as Console
 # endif
 #endif
 
-#if !(MIN_VERSION_base(4,14,0))
+#if !(MIN_VERSION_base(4,16,1))
 import           Data.Orphans.Prelude
 #endif
 
@@ -130,6 +141,17 @@ instance Applicative (Strict.ST s) where
 instance Applicative (Lazy.ST s) where
     pure  = return
     (<*>) = ap
+
+instance Ord TyCon where
+  compare x y = compare (tyConString x) (tyConString y)
+
+-- http://hackage.haskell.org/package/base-4.3.0.0/docs/Data-Typeable.html#t:TypeRep
+-- Notice that the `TypeRep` constructor is not exported
+-- and no pure accessor to its `Key` field is provided.
+instance Ord TypeRep where
+  compare x y =
+    compare (typeRepTyCon x) (typeRepTyCon x) `mappend`
+    compare (typeRepArgs x) (typeRepArgs y)
 #endif
 
 -- These instances are only valid if Bits isn't a subclass of Num (as Bool is
@@ -1041,7 +1063,10 @@ instance MonadZip Down where
 instance Eq1 Down where
     liftEq eq (Down x) (Down y) = eq x y
 instance Ord1 Down where
-    liftCompare comp (Down x) (Down y) = comp x y
+    liftCompare comp (Down x) (Down y) = case comp x y of
+        LT -> GT
+        EQ -> EQ
+        GT -> LT
 instance Read1 Down where
     liftReadsPrec rp _ = readsData $
          readsUnaryWith rp "Down" Down
@@ -1194,6 +1219,747 @@ instance (TestEquality f) => TestEquality (Compose f g) where
     case testEquality x y of -- :: Maybe (g x :~: g y)
       Just Refl -> Just Refl -- :: Maybe (x :~: y)
       Nothing   -> Nothing
+# endif
+#endif
+
+#if !(MIN_VERSION_base(4,15,0))
+instance  (Ix a1, Ix a2, Ix a3, Ix a4, Ix a5, Ix a6) =>
+      Ix (a1,a2,a3,a4,a5,a6)  where
+    range ((l1,l2,l3,l4,l5,l6),(u1,u2,u3,u4,u5,u6)) =
+      [(i1,i2,i3,i4,i5,i6) | i1 <- range (l1,u1),
+                             i2 <- range (l2,u2),
+                             i3 <- range (l3,u3),
+                             i4 <- range (l4,u4),
+                             i5 <- range (l5,u5),
+                             i6 <- range (l6,u6)]
+
+    unsafeIndex ((l1,l2,l3,l4,l5,l6),(u1,u2,u3,u4,u5,u6)) (i1,i2,i3,i4,i5,i6) =
+      unsafeIndex (l6,u6) i6 + unsafeRangeSize (l6,u6) * (
+      unsafeIndex (l5,u5) i5 + unsafeRangeSize (l5,u5) * (
+      unsafeIndex (l4,u4) i4 + unsafeRangeSize (l4,u4) * (
+      unsafeIndex (l3,u3) i3 + unsafeRangeSize (l3,u3) * (
+      unsafeIndex (l2,u2) i2 + unsafeRangeSize (l2,u2) * (
+      unsafeIndex (l1,u1) i1)))))
+
+    inRange ((l1,l2,l3,l4,l5,l6),(u1,u2,u3,u4,u5,u6)) (i1,i2,i3,i4,i5,i6) =
+      inRange (l1,u1) i1 && inRange (l2,u2) i2 &&
+      inRange (l3,u3) i3 && inRange (l4,u4) i4 &&
+      inRange (l5,u5) i5 && inRange (l6,u6) i6
+
+    -- Default method for index
+
+instance  (Ix a1, Ix a2, Ix a3, Ix a4, Ix a5, Ix a6, Ix a7) =>
+      Ix (a1,a2,a3,a4,a5,a6,a7)  where
+    range ((l1,l2,l3,l4,l5,l6,l7),(u1,u2,u3,u4,u5,u6,u7)) =
+      [(i1,i2,i3,i4,i5,i6,i7) | i1 <- range (l1,u1),
+                                i2 <- range (l2,u2),
+                                i3 <- range (l3,u3),
+                                i4 <- range (l4,u4),
+                                i5 <- range (l5,u5),
+                                i6 <- range (l6,u6),
+                                i7 <- range (l7,u7)]
+
+    unsafeIndex ((l1,l2,l3,l4,l5,l6,l7),(u1,u2,u3,u4,u5,u6,u7))
+        (i1,i2,i3,i4,i5,i6,i7) =
+      unsafeIndex (l7,u7) i7 + unsafeRangeSize (l7,u7) * (
+      unsafeIndex (l6,u6) i6 + unsafeRangeSize (l6,u6) * (
+      unsafeIndex (l5,u5) i5 + unsafeRangeSize (l5,u5) * (
+      unsafeIndex (l4,u4) i4 + unsafeRangeSize (l4,u4) * (
+      unsafeIndex (l3,u3) i3 + unsafeRangeSize (l3,u3) * (
+      unsafeIndex (l2,u2) i2 + unsafeRangeSize (l2,u2) * (
+      unsafeIndex (l1,u1) i1))))))
+
+    inRange ((l1,l2,l3,l4,l5,l6,l7),(u1,u2,u3,u4,u5,u6,u7))
+        (i1,i2,i3,i4,i5,i6,i7) =
+      inRange (l1,u1) i1 && inRange (l2,u2) i2 &&
+      inRange (l3,u3) i3 && inRange (l4,u4) i4 &&
+      inRange (l5,u5) i5 && inRange (l6,u6) i6 &&
+      inRange (l7,u7) i7
+
+    -- Default method for index
+
+instance  (Ix a1, Ix a2, Ix a3, Ix a4, Ix a5, Ix a6, Ix a7, Ix a8) =>
+      Ix (a1,a2,a3,a4,a5,a6,a7,a8)  where
+    range ((l1,l2,l3,l4,l5,l6,l7,l8),(u1,u2,u3,u4,u5,u6,u7,u8)) =
+      [(i1,i2,i3,i4,i5,i6,i7,i8) | i1 <- range (l1,u1),
+                                   i2 <- range (l2,u2),
+                                   i3 <- range (l3,u3),
+                                   i4 <- range (l4,u4),
+                                   i5 <- range (l5,u5),
+                                   i6 <- range (l6,u6),
+                                   i7 <- range (l7,u7),
+                                   i8 <- range (l8,u8)]
+
+    unsafeIndex ((l1,l2,l3,l4,l5,l6,l7,l8),(u1,u2,u3,u4,u5,u6,u7,u8))
+        (i1,i2,i3,i4,i5,i6,i7,i8) =
+      unsafeIndex (l8,u8) i8 + unsafeRangeSize (l8,u8) * (
+      unsafeIndex (l7,u7) i7 + unsafeRangeSize (l7,u7) * (
+      unsafeIndex (l6,u6) i6 + unsafeRangeSize (l6,u6) * (
+      unsafeIndex (l5,u5) i5 + unsafeRangeSize (l5,u5) * (
+      unsafeIndex (l4,u4) i4 + unsafeRangeSize (l4,u4) * (
+      unsafeIndex (l3,u3) i3 + unsafeRangeSize (l3,u3) * (
+      unsafeIndex (l2,u2) i2 + unsafeRangeSize (l2,u2) * (
+      unsafeIndex (l1,u1) i1)))))))
+
+    inRange ((l1,l2,l3,l4,l5,l6,l7,l8),(u1,u2,u3,u4,u5,u6,u7,u8))
+        (i1,i2,i3,i4,i5,i6,i7,i8) =
+      inRange (l1,u1) i1 && inRange (l2,u2) i2 &&
+      inRange (l3,u3) i3 && inRange (l4,u4) i4 &&
+      inRange (l5,u5) i5 && inRange (l6,u6) i6 &&
+      inRange (l7,u7) i7 && inRange (l8,u8) i8
+
+    -- Default method for index
+
+instance  (Ix a1, Ix a2, Ix a3, Ix a4, Ix a5, Ix a6, Ix a7, Ix a8, Ix a9) =>
+      Ix (a1,a2,a3,a4,a5,a6,a7,a8,a9)  where
+    range ((l1,l2,l3,l4,l5,l6,l7,l8,l9),(u1,u2,u3,u4,u5,u6,u7,u8,u9)) =
+      [(i1,i2,i3,i4,i5,i6,i7,i8,i9) | i1 <- range (l1,u1),
+                                      i2 <- range (l2,u2),
+                                      i3 <- range (l3,u3),
+                                      i4 <- range (l4,u4),
+                                      i5 <- range (l5,u5),
+                                      i6 <- range (l6,u6),
+                                      i7 <- range (l7,u7),
+                                      i8 <- range (l8,u8),
+                                      i9 <- range (l9,u9)]
+
+    unsafeIndex ((l1,l2,l3,l4,l5,l6,l7,l8,l9),(u1,u2,u3,u4,u5,u6,u7,u8,u9))
+        (i1,i2,i3,i4,i5,i6,i7,i8,i9) =
+      unsafeIndex (l9,u9) i9 + unsafeRangeSize (l9,u9) * (
+      unsafeIndex (l8,u8) i8 + unsafeRangeSize (l8,u8) * (
+      unsafeIndex (l7,u7) i7 + unsafeRangeSize (l7,u7) * (
+      unsafeIndex (l6,u6) i6 + unsafeRangeSize (l6,u6) * (
+      unsafeIndex (l5,u5) i5 + unsafeRangeSize (l5,u5) * (
+      unsafeIndex (l4,u4) i4 + unsafeRangeSize (l4,u4) * (
+      unsafeIndex (l3,u3) i3 + unsafeRangeSize (l3,u3) * (
+      unsafeIndex (l2,u2) i2 + unsafeRangeSize (l2,u2) * (
+      unsafeIndex (l1,u1) i1))))))))
+
+    inRange ((l1,l2,l3,l4,l5,l6,l7,l8,l9),(u1,u2,u3,u4,u5,u6,u7,u8,u9))
+        (i1,i2,i3,i4,i5,i6,i7,i8,i9) =
+      inRange (l1,u1) i1 && inRange (l2,u2) i2 &&
+      inRange (l3,u3) i3 && inRange (l4,u4) i4 &&
+      inRange (l5,u5) i5 && inRange (l6,u6) i6 &&
+      inRange (l7,u7) i7 && inRange (l8,u8) i8 &&
+      inRange (l9,u9) i9
+
+    -- Default method for index
+
+instance  (Ix a1, Ix a2, Ix a3, Ix a4, Ix a5, Ix a6, Ix a7, Ix a8, Ix a9,
+           Ix aA) =>
+      Ix (a1,a2,a3,a4,a5,a6,a7,a8,a9,aA)  where
+    range ((l1,l2,l3,l4,l5,l6,l7,l8,l9,lA),(u1,u2,u3,u4,u5,u6,u7,u8,u9,uA)) =
+      [(i1,i2,i3,i4,i5,i6,i7,i8,i9,iA) | i1 <- range (l1,u1),
+                                         i2 <- range (l2,u2),
+                                         i3 <- range (l3,u3),
+                                         i4 <- range (l4,u4),
+                                         i5 <- range (l5,u5),
+                                         i6 <- range (l6,u6),
+                                         i7 <- range (l7,u7),
+                                         i8 <- range (l8,u8),
+                                         i9 <- range (l9,u9),
+                                         iA <- range (lA,uA)]
+
+    unsafeIndex ((l1,l2,l3,l4,l5,l6,l7,l8,l9,lA),
+                 (u1,u2,u3,u4,u5,u6,u7,u8,u9,uA))
+        (i1,i2,i3,i4,i5,i6,i7,i8,i9,iA) =
+      unsafeIndex (lA,uA) iA + unsafeRangeSize (lA,uA) * (
+      unsafeIndex (l9,u9) i9 + unsafeRangeSize (l9,u9) * (
+      unsafeIndex (l8,u8) i8 + unsafeRangeSize (l8,u8) * (
+      unsafeIndex (l7,u7) i7 + unsafeRangeSize (l7,u7) * (
+      unsafeIndex (l6,u6) i6 + unsafeRangeSize (l6,u6) * (
+      unsafeIndex (l5,u5) i5 + unsafeRangeSize (l5,u5) * (
+      unsafeIndex (l4,u4) i4 + unsafeRangeSize (l4,u4) * (
+      unsafeIndex (l3,u3) i3 + unsafeRangeSize (l3,u3) * (
+      unsafeIndex (l2,u2) i2 + unsafeRangeSize (l2,u2) * (
+      unsafeIndex (l1,u1) i1)))))))))
+
+    inRange ((l1,l2,l3,l4,l5,l6,l7,l8,l9,lA),(u1,u2,u3,u4,u5,u6,u7,u8,u9,uA))
+        (i1,i2,i3,i4,i5,i6,i7,i8,i9,iA) =
+      inRange (l1,u1) i1 && inRange (l2,u2) i2 &&
+      inRange (l3,u3) i3 && inRange (l4,u4) i4 &&
+      inRange (l5,u5) i5 && inRange (l6,u6) i6 &&
+      inRange (l7,u7) i7 && inRange (l8,u8) i8 &&
+      inRange (l9,u9) i9 && inRange (lA,uA) iA
+
+    -- Default method for index
+
+instance  (Ix a1, Ix a2, Ix a3, Ix a4, Ix a5, Ix a6, Ix a7, Ix a8, Ix a9,
+           Ix aA, Ix aB) =>
+      Ix (a1,a2,a3,a4,a5,a6,a7,a8,a9,aA,aB)  where
+    range ((l1,l2,l3,l4,l5,l6,l7,l8,l9,lA,lB),
+           (u1,u2,u3,u4,u5,u6,u7,u8,u9,uA,uB)) =
+      [(i1,i2,i3,i4,i5,i6,i7,i8,i9,iA,iB) | i1 <- range (l1,u1),
+                                            i2 <- range (l2,u2),
+                                            i3 <- range (l3,u3),
+                                            i4 <- range (l4,u4),
+                                            i5 <- range (l5,u5),
+                                            i6 <- range (l6,u6),
+                                            i7 <- range (l7,u7),
+                                            i8 <- range (l8,u8),
+                                            i9 <- range (l9,u9),
+                                            iA <- range (lA,uA),
+                                            iB <- range (lB,uB)]
+
+    unsafeIndex ((l1,l2,l3,l4,l5,l6,l7,l8,l9,lA,lB),
+                 (u1,u2,u3,u4,u5,u6,u7,u8,u9,uA,uB))
+        (i1,i2,i3,i4,i5,i6,i7,i8,i9,iA,iB) =
+      unsafeIndex (lB,uB) iB + unsafeRangeSize (lB,uB) * (
+      unsafeIndex (lA,uA) iA + unsafeRangeSize (lA,uA) * (
+      unsafeIndex (l9,u9) i9 + unsafeRangeSize (l9,u9) * (
+      unsafeIndex (l8,u8) i8 + unsafeRangeSize (l8,u8) * (
+      unsafeIndex (l7,u7) i7 + unsafeRangeSize (l7,u7) * (
+      unsafeIndex (l6,u6) i6 + unsafeRangeSize (l6,u6) * (
+      unsafeIndex (l5,u5) i5 + unsafeRangeSize (l5,u5) * (
+      unsafeIndex (l4,u4) i4 + unsafeRangeSize (l4,u4) * (
+      unsafeIndex (l3,u3) i3 + unsafeRangeSize (l3,u3) * (
+      unsafeIndex (l2,u2) i2 + unsafeRangeSize (l2,u2) * (
+      unsafeIndex (l1,u1) i1))))))))))
+
+    inRange ((l1,l2,l3,l4,l5,l6,l7,l8,l9,lA,lB),
+             (u1,u2,u3,u4,u5,u6,u7,u8,u9,uA,uB))
+        (i1,i2,i3,i4,i5,i6,i7,i8,i9,iA,iB) =
+      inRange (l1,u1) i1 && inRange (l2,u2) i2 &&
+      inRange (l3,u3) i3 && inRange (l4,u4) i4 &&
+      inRange (l5,u5) i5 && inRange (l6,u6) i6 &&
+      inRange (l7,u7) i7 && inRange (l8,u8) i8 &&
+      inRange (l9,u9) i9 && inRange (lA,uA) iA &&
+      inRange (lB,uB) iB
+
+    -- Default method for index
+
+instance  (Ix a1, Ix a2, Ix a3, Ix a4, Ix a5, Ix a6, Ix a7, Ix a8, Ix a9,
+           Ix aA, Ix aB, Ix aC) =>
+      Ix (a1,a2,a3,a4,a5,a6,a7,a8,a9,aA,aB,aC)  where
+    range ((l1,l2,l3,l4,l5,l6,l7,l8,l9,lA,lB,lC),
+           (u1,u2,u3,u4,u5,u6,u7,u8,u9,uA,uB,uC)) =
+      [(i1,i2,i3,i4,i5,i6,i7,i8,i9,iA,iB,iC) | i1 <- range (l1,u1),
+                                               i2 <- range (l2,u2),
+                                               i3 <- range (l3,u3),
+                                               i4 <- range (l4,u4),
+                                               i5 <- range (l5,u5),
+                                               i6 <- range (l6,u6),
+                                               i7 <- range (l7,u7),
+                                               i8 <- range (l8,u8),
+                                               i9 <- range (l9,u9),
+                                               iA <- range (lA,uA),
+                                               iB <- range (lB,uB),
+                                               iC <- range (lC,uC)]
+
+    unsafeIndex ((l1,l2,l3,l4,l5,l6,l7,l8,l9,lA,lB,lC),
+                 (u1,u2,u3,u4,u5,u6,u7,u8,u9,uA,uB,uC))
+        (i1,i2,i3,i4,i5,i6,i7,i8,i9,iA,iB,iC) =
+      unsafeIndex (lC,uC) iC + unsafeRangeSize (lC,uC) * (
+      unsafeIndex (lB,uB) iB + unsafeRangeSize (lB,uB) * (
+      unsafeIndex (lA,uA) iA + unsafeRangeSize (lA,uA) * (
+      unsafeIndex (l9,u9) i9 + unsafeRangeSize (l9,u9) * (
+      unsafeIndex (l8,u8) i8 + unsafeRangeSize (l8,u8) * (
+      unsafeIndex (l7,u7) i7 + unsafeRangeSize (l7,u7) * (
+      unsafeIndex (l6,u6) i6 + unsafeRangeSize (l6,u6) * (
+      unsafeIndex (l5,u5) i5 + unsafeRangeSize (l5,u5) * (
+      unsafeIndex (l4,u4) i4 + unsafeRangeSize (l4,u4) * (
+      unsafeIndex (l3,u3) i3 + unsafeRangeSize (l3,u3) * (
+      unsafeIndex (l2,u2) i2 + unsafeRangeSize (l2,u2) * (
+      unsafeIndex (l1,u1) i1)))))))))))
+
+    inRange ((l1,l2,l3,l4,l5,l6,l7,l8,l9,lA,lB,lC),
+             (u1,u2,u3,u4,u5,u6,u7,u8,u9,uA,uB,uC))
+        (i1,i2,i3,i4,i5,i6,i7,i8,i9,iA,iB,iC) =
+      inRange (l1,u1) i1 && inRange (l2,u2) i2 &&
+      inRange (l3,u3) i3 && inRange (l4,u4) i4 &&
+      inRange (l5,u5) i5 && inRange (l6,u6) i6 &&
+      inRange (l7,u7) i7 && inRange (l8,u8) i8 &&
+      inRange (l9,u9) i9 && inRange (lA,uA) iA &&
+      inRange (lB,uB) iB && inRange (lC,uC) iC
+
+    -- Default method for index
+
+instance  (Ix a1, Ix a2, Ix a3, Ix a4, Ix a5, Ix a6, Ix a7, Ix a8, Ix a9,
+           Ix aA, Ix aB, Ix aC, Ix aD) =>
+      Ix (a1,a2,a3,a4,a5,a6,a7,a8,a9,aA,aB,aC,aD)  where
+    range ((l1,l2,l3,l4,l5,l6,l7,l8,l9,lA,lB,lC,lD),
+           (u1,u2,u3,u4,u5,u6,u7,u8,u9,uA,uB,uC,uD)) =
+      [(i1,i2,i3,i4,i5,i6,i7,i8,i9,iA,iB,iC,iD) | i1 <- range (l1,u1),
+                                                  i2 <- range (l2,u2),
+                                                  i3 <- range (l3,u3),
+                                                  i4 <- range (l4,u4),
+                                                  i5 <- range (l5,u5),
+                                                  i6 <- range (l6,u6),
+                                                  i7 <- range (l7,u7),
+                                                  i8 <- range (l8,u8),
+                                                  i9 <- range (l9,u9),
+                                                  iA <- range (lA,uA),
+                                                  iB <- range (lB,uB),
+                                                  iC <- range (lC,uC),
+                                                  iD <- range (lD,uD)]
+
+    unsafeIndex ((l1,l2,l3,l4,l5,l6,l7,l8,l9,lA,lB,lC,lD),
+                 (u1,u2,u3,u4,u5,u6,u7,u8,u9,uA,uB,uC,uD))
+        (i1,i2,i3,i4,i5,i6,i7,i8,i9,iA,iB,iC,iD) =
+      unsafeIndex (lD,uD) iD + unsafeRangeSize (lD,uD) * (
+      unsafeIndex (lC,uC) iC + unsafeRangeSize (lC,uC) * (
+      unsafeIndex (lB,uB) iB + unsafeRangeSize (lB,uB) * (
+      unsafeIndex (lA,uA) iA + unsafeRangeSize (lA,uA) * (
+      unsafeIndex (l9,u9) i9 + unsafeRangeSize (l9,u9) * (
+      unsafeIndex (l8,u8) i8 + unsafeRangeSize (l8,u8) * (
+      unsafeIndex (l7,u7) i7 + unsafeRangeSize (l7,u7) * (
+      unsafeIndex (l6,u6) i6 + unsafeRangeSize (l6,u6) * (
+      unsafeIndex (l5,u5) i5 + unsafeRangeSize (l5,u5) * (
+      unsafeIndex (l4,u4) i4 + unsafeRangeSize (l4,u4) * (
+      unsafeIndex (l3,u3) i3 + unsafeRangeSize (l3,u3) * (
+      unsafeIndex (l2,u2) i2 + unsafeRangeSize (l2,u2) * (
+      unsafeIndex (l1,u1) i1))))))))))))
+
+    inRange ((l1,l2,l3,l4,l5,l6,l7,l8,l9,lA,lB,lC,lD),
+             (u1,u2,u3,u4,u5,u6,u7,u8,u9,uA,uB,uC,uD))
+        (i1,i2,i3,i4,i5,i6,i7,i8,i9,iA,iB,iC,iD) =
+      inRange (l1,u1) i1 && inRange (l2,u2) i2 &&
+      inRange (l3,u3) i3 && inRange (l4,u4) i4 &&
+      inRange (l5,u5) i5 && inRange (l6,u6) i6 &&
+      inRange (l7,u7) i7 && inRange (l8,u8) i8 &&
+      inRange (l9,u9) i9 && inRange (lA,uA) iA &&
+      inRange (lB,uB) iB && inRange (lC,uC) iC &&
+      inRange (lD,uD) iD
+
+    -- Default method for index
+
+instance  (Ix a1, Ix a2, Ix a3, Ix a4, Ix a5, Ix a6, Ix a7, Ix a8, Ix a9,
+           Ix aA, Ix aB, Ix aC, Ix aD, Ix aE) =>
+      Ix (a1,a2,a3,a4,a5,a6,a7,a8,a9,aA,aB,aC,aD,aE)  where
+    range ((l1,l2,l3,l4,l5,l6,l7,l8,l9,lA,lB,lC,lD,lE),
+           (u1,u2,u3,u4,u5,u6,u7,u8,u9,uA,uB,uC,uD,uE)) =
+      [(i1,i2,i3,i4,i5,i6,i7,i8,i9,iA,iB,iC,iD,iE) | i1 <- range (l1,u1),
+                                                     i2 <- range (l2,u2),
+                                                     i3 <- range (l3,u3),
+                                                     i4 <- range (l4,u4),
+                                                     i5 <- range (l5,u5),
+                                                     i6 <- range (l6,u6),
+                                                     i7 <- range (l7,u7),
+                                                     i8 <- range (l8,u8),
+                                                     i9 <- range (l9,u9),
+                                                     iA <- range (lA,uA),
+                                                     iB <- range (lB,uB),
+                                                     iC <- range (lC,uC),
+                                                     iD <- range (lD,uD),
+                                                     iE <- range (lE,uE)]
+
+    unsafeIndex ((l1,l2,l3,l4,l5,l6,l7,l8,l9,lA,lB,lC,lD,lE),
+                 (u1,u2,u3,u4,u5,u6,u7,u8,u9,uA,uB,uC,uD,uE))
+        (i1,i2,i3,i4,i5,i6,i7,i8,i9,iA,iB,iC,iD,iE) =
+      unsafeIndex (lE,uE) iE + unsafeRangeSize (lE,uE) * (
+      unsafeIndex (lD,uD) iD + unsafeRangeSize (lD,uD) * (
+      unsafeIndex (lC,uC) iC + unsafeRangeSize (lC,uC) * (
+      unsafeIndex (lB,uB) iB + unsafeRangeSize (lB,uB) * (
+      unsafeIndex (lA,uA) iA + unsafeRangeSize (lA,uA) * (
+      unsafeIndex (l9,u9) i9 + unsafeRangeSize (l9,u9) * (
+      unsafeIndex (l8,u8) i8 + unsafeRangeSize (l8,u8) * (
+      unsafeIndex (l7,u7) i7 + unsafeRangeSize (l7,u7) * (
+      unsafeIndex (l6,u6) i6 + unsafeRangeSize (l6,u6) * (
+      unsafeIndex (l5,u5) i5 + unsafeRangeSize (l5,u5) * (
+      unsafeIndex (l4,u4) i4 + unsafeRangeSize (l4,u4) * (
+      unsafeIndex (l3,u3) i3 + unsafeRangeSize (l3,u3) * (
+      unsafeIndex (l2,u2) i2 + unsafeRangeSize (l2,u2) * (
+      unsafeIndex (l1,u1) i1)))))))))))))
+
+    inRange ((l1,l2,l3,l4,l5,l6,l7,l8,l9,lA,lB,lC,lD,lE),
+             (u1,u2,u3,u4,u5,u6,u7,u8,u9,uA,uB,uC,uD,uE))
+        (i1,i2,i3,i4,i5,i6,i7,i8,i9,iA,iB,iC,iD,iE) =
+      inRange (l1,u1) i1 && inRange (l2,u2) i2 &&
+      inRange (l3,u3) i3 && inRange (l4,u4) i4 &&
+      inRange (l5,u5) i5 && inRange (l6,u6) i6 &&
+      inRange (l7,u7) i7 && inRange (l8,u8) i8 &&
+      inRange (l9,u9) i9 && inRange (lA,uA) iA &&
+      inRange (lB,uB) iB && inRange (lC,uC) iC &&
+      inRange (lD,uD) iD && inRange (lE,uE) iE
+
+    -- Default method for index
+
+instance  (Ix a1, Ix a2, Ix a3, Ix a4, Ix a5, Ix a6, Ix a7, Ix a8, Ix a9,
+           Ix aA, Ix aB, Ix aC, Ix aD, Ix aE, Ix aF) =>
+      Ix (a1,a2,a3,a4,a5,a6,a7,a8,a9,aA,aB,aC,aD,aE,aF)  where
+    range ((l1,l2,l3,l4,l5,l6,l7,l8,l9,lA,lB,lC,lD,lE,lF),
+           (u1,u2,u3,u4,u5,u6,u7,u8,u9,uA,uB,uC,uD,uE,uF)) =
+      [(i1,i2,i3,i4,i5,i6,i7,i8,i9,iA,iB,iC,iD,iE,iF) | i1 <- range (l1,u1),
+                                                        i2 <- range (l2,u2),
+                                                        i3 <- range (l3,u3),
+                                                        i4 <- range (l4,u4),
+                                                        i5 <- range (l5,u5),
+                                                        i6 <- range (l6,u6),
+                                                        i7 <- range (l7,u7),
+                                                        i8 <- range (l8,u8),
+                                                        i9 <- range (l9,u9),
+                                                        iA <- range (lA,uA),
+                                                        iB <- range (lB,uB),
+                                                        iC <- range (lC,uC),
+                                                        iD <- range (lD,uD),
+                                                        iE <- range (lE,uE),
+                                                        iF <- range (lF,uF)]
+
+    unsafeIndex ((l1,l2,l3,l4,l5,l6,l7,l8,l9,lA,lB,lC,lD,lE,lF),
+                 (u1,u2,u3,u4,u5,u6,u7,u8,u9,uA,uB,uC,uD,uE,uF))
+        (i1,i2,i3,i4,i5,i6,i7,i8,i9,iA,iB,iC,iD,iE,iF) =
+      unsafeIndex (lF,uF) iF + unsafeRangeSize (lF,uF) * (
+      unsafeIndex (lE,uE) iE + unsafeRangeSize (lE,uE) * (
+      unsafeIndex (lD,uD) iD + unsafeRangeSize (lD,uD) * (
+      unsafeIndex (lC,uC) iC + unsafeRangeSize (lC,uC) * (
+      unsafeIndex (lB,uB) iB + unsafeRangeSize (lB,uB) * (
+      unsafeIndex (lA,uA) iA + unsafeRangeSize (lA,uA) * (
+      unsafeIndex (l9,u9) i9 + unsafeRangeSize (l9,u9) * (
+      unsafeIndex (l8,u8) i8 + unsafeRangeSize (l8,u8) * (
+      unsafeIndex (l7,u7) i7 + unsafeRangeSize (l7,u7) * (
+      unsafeIndex (l6,u6) i6 + unsafeRangeSize (l6,u6) * (
+      unsafeIndex (l5,u5) i5 + unsafeRangeSize (l5,u5) * (
+      unsafeIndex (l4,u4) i4 + unsafeRangeSize (l4,u4) * (
+      unsafeIndex (l3,u3) i3 + unsafeRangeSize (l3,u3) * (
+      unsafeIndex (l2,u2) i2 + unsafeRangeSize (l2,u2) * (
+      unsafeIndex (l1,u1) i1))))))))))))))
+
+    inRange ((l1,l2,l3,l4,l5,l6,l7,l8,l9,lA,lB,lC,lD,lE,lF),
+             (u1,u2,u3,u4,u5,u6,u7,u8,u9,uA,uB,uC,uD,uE,uF))
+        (i1,i2,i3,i4,i5,i6,i7,i8,i9,iA,iB,iC,iD,iE,iF) =
+      inRange (l1,u1) i1 && inRange (l2,u2) i2 &&
+      inRange (l3,u3) i3 && inRange (l4,u4) i4 &&
+      inRange (l5,u5) i5 && inRange (l6,u6) i6 &&
+      inRange (l7,u7) i7 && inRange (l8,u8) i8 &&
+      inRange (l9,u9) i9 && inRange (lA,uA) iA &&
+      inRange (lB,uB) iB && inRange (lC,uC) iC &&
+      inRange (lD,uD) iD && inRange (lE,uE) iE &&
+      inRange (lF,uF) iF
+
+    -- Default method for index
+
+# if MIN_VERSION_base(4,4,0)
+instance MonadZip Complex where
+  mzipWith = liftA2
+
+instance MonadFix Complex where
+  mfix f = (let a :+ _ = f a in a) :+ (let _ :+ a = f a in a)
+# endif
+#endif
+
+#if !(MIN_VERSION_base(4,16,0))
+# if MIN_VERSION_base(4,9,0)
+instance Eq1 Complex where
+    liftEq eq (x :+ y) (u :+ v) = eq x u && eq y v
+
+instance Read1 Complex where
+#  if MIN_VERSION_base(4,10,0)
+    liftReadPrec rp _  = parens $ prec complexPrec $ do
+        x <- step rp
+        expectP (Symbol ":+")
+        y <- step rp
+        return (x :+ y)
+      where
+        complexPrec = 6
+
+    liftReadListPrec = liftReadListPrecDefault
+    liftReadList     = liftReadListDefault
+#  else
+    liftReadsPrec rdP _ p s = readParen (p > complexPrec) (\s' -> do
+      (x, s'')     <- rdP (complexPrec+1) s'
+      (":+", s''') <- lex s''
+      (y, s'''')   <- rdP (complexPrec+1) s'''
+      return (x :+ y, s'''')) s
+      where
+        complexPrec = 6
+#  endif
+
+instance Show1 Complex where
+    liftShowsPrec sp _ d (x :+ y) = showParen (d > complexPrec) $
+        sp (complexPrec+1) x . showString " :+ " . sp (complexPrec+1) y
+      where
+        complexPrec = 6
+
+instance Eq a => Eq2 ((,,) a) where
+    liftEq2 e1 e2 (u1, x1, y1) (v1, x2, y2) =
+        u1 == v1 &&
+        e1 x1 x2 && e2 y1 y2
+
+instance Ord a => Ord2 ((,,) a) where
+    liftCompare2 comp1 comp2 (u1, x1, y1) (v1, x2, y2) =
+        compare u1 v1 `mappend`
+        comp1 x1 x2 `mappend` comp2 y1 y2
+
+instance Read a => Read2 ((,,) a) where
+#  if MIN_VERSION_base(4,10,0)
+    liftReadPrec2 rp1 _ rp2 _ = parens $ paren $ do
+        x1 <- readPrec
+        expectP (Punc ",")
+        y1 <- rp1
+        expectP (Punc ",")
+        y2 <- rp2
+        return (x1,y1,y2)
+
+    liftReadListPrec2 = liftReadListPrec2Default
+    liftReadList2     = liftReadList2Default
+#  else
+    liftReadsPrec2 rp1 _ rp2 _ _ = readParen False $ \ r ->
+        [((e1,e2,e3), y) | ("(",s) <- lex r,
+                           (e1,t)  <- readsPrec 0 s,
+                           (",",u) <- lex t,
+                           (e2,v)  <- rp1 0 u,
+                           (",",w) <- lex v,
+                           (e3,x)  <- rp2 0 w,
+                           (")",y) <- lex x]
+#  endif
+
+instance Show a => Show2 ((,,) a) where
+    liftShowsPrec2 sp1 _ sp2 _ _ (x1,y1,y2)
+        = showChar '(' . showsPrec 0 x1
+        . showChar ',' . sp1 0 y1
+        . showChar ',' . sp2 0 y2
+        . showChar ')'
+
+instance (Eq a, Eq b) => Eq1 ((,,) a b) where
+    liftEq = liftEq2 (==)
+
+instance (Ord a, Ord b) => Ord1 ((,,) a b) where
+    liftCompare = liftCompare2 compare
+
+instance (Read a, Read b) => Read1 ((,,) a b) where
+#  if MIN_VERSION_base(4,10,0)
+    liftReadPrec = liftReadPrec2 readPrec readListPrec
+
+    liftReadListPrec = liftReadListPrecDefault
+    liftReadList     = liftReadListDefault
+#  else
+    liftReadsPrec = liftReadsPrec2 readsPrec readList
+#  endif
+
+instance (Show a, Show b) => Show1 ((,,) a b) where
+    liftShowsPrec = liftShowsPrec2 showsPrec showList
+
+instance (Eq a, Eq b) => Eq2 ((,,,) a b) where
+    liftEq2 e1 e2 (u1, u2, x1, y1) (v1, v2, x2, y2) =
+        u1 == v1 &&
+        u2 == v2 &&
+        e1 x1 x2 && e2 y1 y2
+
+instance (Ord a, Ord b) => Ord2 ((,,,) a b) where
+    liftCompare2 comp1 comp2 (u1, u2, x1, y1) (v1, v2, x2, y2) =
+        compare u1 v1 `mappend`
+        compare u2 v2 `mappend`
+        comp1 x1 x2 `mappend` comp2 y1 y2
+
+instance (Read a, Read b) => Read2 ((,,,) a b) where
+#  if MIN_VERSION_base(4,10,0)
+    liftReadPrec2 rp1 _ rp2 _ = parens $ paren $ do
+        x1 <- readPrec
+        expectP (Punc ",")
+        x2 <- readPrec
+        expectP (Punc ",")
+        y1 <- rp1
+        expectP (Punc ",")
+        y2 <- rp2
+        return (x1,x2,y1,y2)
+
+    liftReadListPrec2 = liftReadListPrec2Default
+    liftReadList2     = liftReadList2Default
+#  else
+    liftReadsPrec2 rp1 _ rp2 _ _ = readParen False $ \ r ->
+        [((e1,e2,e3,e4), s9) | ("(",s1) <- lex r,
+                               (e1,s2)  <- readsPrec 0 s1,
+                               (",",s3) <- lex s2,
+                               (e2,s4)  <- readsPrec 0 s3,
+                               (",",s5) <- lex s4,
+                               (e3,s6)  <- rp1 0 s5,
+                               (",",s7) <- lex s6,
+                               (e4,s8)  <- rp2 0 s7,
+                               (")",s9) <- lex s8]
+#  endif
+
+instance (Show a, Show b) => Show2 ((,,,) a b) where
+    liftShowsPrec2 sp1 _ sp2 _ _ (x1,x2,y1,y2)
+        = showChar '(' . showsPrec 0 x1
+        . showChar ',' . showsPrec 0 x2
+        . showChar ',' . sp1 0 y1
+        . showChar ',' . sp2 0 y2
+        . showChar ')'
+
+instance (Eq a, Eq b, Eq c) => Eq1 ((,,,) a b c) where
+    liftEq = liftEq2 (==)
+
+instance (Ord a, Ord b, Ord c) => Ord1 ((,,,) a b c) where
+    liftCompare = liftCompare2 compare
+
+instance (Read a, Read b, Read c) => Read1 ((,,,) a b c) where
+#  if MIN_VERSION_base(4,10,0)
+    liftReadPrec = liftReadPrec2 readPrec readListPrec
+
+    liftReadListPrec = liftReadListPrecDefault
+    liftReadList     = liftReadListDefault
+#  else
+    liftReadsPrec = liftReadsPrec2 readsPrec readList
+#  endif
+
+instance (Show a, Show b, Show c) => Show1 ((,,,) a b c) where
+    liftShowsPrec = liftShowsPrec2 showsPrec showList
+
+deriving instance Semigroup (f (g a)) => Semigroup (Compose f g a)
+deriving instance Monoid    (f (g a)) => Monoid    (Compose f g a)
+
+instance (Semigroup (f a), Semigroup (g a)) => Semigroup (Functor.Product f g a) where
+    Functor.Pair x1 y1 <> Functor.Pair x2 y2 = Functor.Pair (x1 <> x2) (y1 <> y2)
+
+instance (Monoid (f a), Monoid (g a)) => Monoid (Functor.Product f g a) where
+    mempty = Functor.Pair mempty mempty
+#  if !(MIN_VERSION_base(4,11,0))
+    Functor.Pair x1 y1 `mappend` Functor.Pair x2 y2 = Functor.Pair (x1 `mappend` x2) (y1 `mappend` y2)
+#  endif
+# endif
+
+# if MIN_VERSION_base(4,15,0)
+instance Enum a => Enum (Solo a) where
+    succ (Solo a) = Solo (succ a)
+    pred (Solo a) = Solo (pred a)
+
+    toEnum x = Solo (toEnum x)
+
+    fromEnum (Solo x) = fromEnum x
+    enumFrom (Solo x) = [Solo a | a <- enumFrom x]
+    enumFromThen (Solo x) (Solo y) =
+      [Solo a | a <- enumFromThen x y]
+    enumFromTo (Solo x) (Solo y) =
+      [Solo a | a <- enumFromTo x y]
+    enumFromThenTo (Solo x) (Solo y) (Solo z) =
+      [Solo a | a <- enumFromThenTo x y z]
+
+deriving instance Eq a => Eq (Solo a)
+deriving instance Ord a => Ord (Solo a)
+deriving instance Bounded a => Bounded (Solo a)
+
+instance Ix a => Ix (Solo a) where -- as derived
+    {-# SPECIALISE instance Ix (Solo Int) #-}
+
+    {-# INLINE range #-}
+    range (Solo l, Solo u) =
+      [ Solo i | i <- range (l,u) ]
+
+    {-# INLINE unsafeIndex #-}
+    unsafeIndex (Solo l, Solo u) (Solo i) =
+      unsafeIndex (l,u) i
+
+    {-# INLINE inRange #-}
+    inRange (Solo l, Solo u) (Solo i) =
+      inRange (l, u) i
+
+    -- Default method for index
+# endif
+#endif
+
+#if !(MIN_VERSION_base(4,16,1))
+# if MIN_VERSION_base(4,5,0)
+-- These are guarded on base-4.5.0 because that was the first version which
+-- exported their constructors, which is necessary to use
+-- GeneralizedNewtypeDeriving. See
+-- https://gitlab.haskell.org/ghc/ghc/-/issues/5529.
+deriving instance Ix CChar
+deriving instance Ix CSChar
+deriving instance Ix CUChar
+deriving instance Ix CShort
+deriving instance Ix CUShort
+deriving instance Ix CInt
+deriving instance Ix CUInt
+deriving instance Ix CLong
+deriving instance Ix CULong
+deriving instance Ix CLLong
+deriving instance Ix CULLong
+deriving instance Ix CPtrdiff
+deriving instance Ix CSize
+deriving instance Ix CWchar
+deriving instance Ix CSigAtomic
+deriving instance Ix CIntPtr
+deriving instance Ix CUIntPtr
+deriving instance Ix CIntMax
+deriving instance Ix CUIntMax
+# endif
+# if MIN_VERSION_base(4,10,0)
+deriving instance Ix CBool
+# endif
+
+# if MIN_VERSION_base(4,10,0)
+-- These are guarded on base-4.10.0 because that was the first version which
+-- exported their constructors, which is necessary to use
+-- GeneralizedNewtypeDeriving. See
+-- https://gitlab.haskell.org/ghc/ghc/-/issues/11983.
+deriving instance Ix WordPtr
+deriving instance Ix IntPtr
+# endif
+
+# if MIN_VERSION_base(4,5,0)
+-- These are guarded on base-4.5.0 because that was the first version which
+-- exported their constructors, which is necessary to use
+-- GeneralizedNewtypeDeriving. See
+-- https://gitlab.haskell.org/ghc/ghc/-/issues/5529.
+#  if defined(HTYPE_DEV_T)
+deriving instance Ix CDev
+# endif
+#  if defined(HTYPE_INO_T)
+deriving instance Ix CIno
+#  endif
+#  if defined(HTYPE_MODE_T)
+deriving instance Ix CMode
+#  endif
+#  if defined(HTYPE_OFF_T)
+deriving instance Ix COff
+#  endif
+#  if defined(HTYPE_PID_T)
+deriving instance Ix CPid
+#  endif
+#  if defined(HTYPE_SSIZE_T)
+deriving instance Ix CSsize
+#  endif
+#  if defined(HTYPE_GID_T)
+deriving instance Ix CGid
+#  endif
+#  if defined(HTYPE_NLINK_T)
+deriving instance Ix CNlink
+#  endif
+#  if defined(HTYPE_UID_T)
+deriving instance Ix CUid
+#  endif
+#  if defined(HTYPE_CC_T)
+deriving instance Ix CCc
+#  endif
+#  if defined(HTYPE_SPEED_T)
+deriving instance Ix CSpeed
+#  endif
+#  if defined(HTYPE_TCFLAG_T)
+deriving instance Ix CTcflag
+#  endif
+#  if defined(HTYPE_RLIM_T)
+deriving instance Ix CRLim
+#  endif
+deriving instance Ix Fd
+# endif
+#  if MIN_VERSION_base(4,10,0)
+#  if defined(HTYPE_BLKSIZE_T)
+deriving instance Ix CBlkSize
+#  endif
+#  if defined(HTYPE_BLKCNT_T)
+deriving instance Ix CBlkCnt
+#  endif
+#  if defined(HTYPE_CLOCKID_T)
+deriving instance Ix CClockId
+#  endif
+#  if defined(HTYPE_FSBLKCNT_T)
+deriving instance Ix CFsBlkCnt
+#  endif
+#  if defined(HTYPE_FSFILCNT_T)
+deriving instance Ix CFsFilCnt
+#  endif
+#  if defined(HTYPE_ID_T)
+deriving instance Ix CId
+#  endif
+#  if defined(HTYPE_KEY_T)
+deriving instance Ix CKey
+#  endif
+#  if defined(HTYPE_SOCKLEN_T)
+deriving instance Ix CSocklen
+#  endif
+#  if defined(HTYPE_NFDS_T)
+deriving instance Ix CNfds
+#  endif
 # endif
 #endif
 

@@ -1,3 +1,38 @@
+## Changes in 0.8.7 [2022.08.11]
+ - Backport new instances from GHC 9.2.2/`base-4.16.1.0`:
+   * `Ix` instances for various integral types in `Foreign.C.Types`,
+     `Foreign.Ptr`, and `System.Posix.Types`. For a complete list of such types,
+     see https://gitlab.haskell.org/ghc/ghc/-/merge_requests/7385.
+ - Backport a bugfix for the `Ord1 Down` instance from GHC 9.4/`base-4.17` such
+   that it now uses reverse sort order.
+
+## Changes in 0.8.6 [2021.10.29]
+ - Backport `Eq`, `Ord`, `Bounded`, `Enum`, and `Ix` instances for `Solo`,
+   introduced in GHC 9.2/`base-4.16`
+ - Remove the backported `Eq1` and `Ord1` instances for `Fixed` that were
+   introduced in `base-orphans-0.8.5`. While these briefly appeared in a
+   release candidate version of GHC 9.2.1, they were ultimately removed from
+   the final 9.2.1 release. This release of `base-orphans` synchronizes with
+   that change.
+
+## Changes in 0.8.5 [2021.08.29]
+ - Backport new instances from GHC 9.2/`base-4.16`
+   * `Eq1`, `Read1`, and `Show1` instances for `Complex`
+   * `Eq1` and `Ord1` instances for `Fixed`
+   * `Eq{1,2}`, `Ord{1,2}`, `Show{1,2}`, and `Read{1,2}` instances for `(,,)`
+      and `(,,,)`
+   * `Semigroup` and `Monoid` instances for `Data.Functor.Product` and
+     `Data.Functor.Compose`
+
+## Changes in 0.8.4 [2020.12.09]
+ - Backport the `Ord` instances for `TyCon` and `TypeRep` to be available on
+   GHC 7.0.
+
+## Changes in 0.8.3 [2020.09.30]
+ - Backport new instances from GHC 9.0/`base-4.15`
+   * `MonadFix` and `MonadZip` instances for `Complex`
+   * `Ix` instances for tuples of size 6 through 15
+
 ## Changes in 0.8.2 [2020.01.27]
  - Backport new instances from GHC 8.10/`base-4.14`
    * `Bits`, `Bounded`, `Enum`, `FiniteBits`, `Floating`, `Fractional`,

@@ -1,8 +1,16 @@
-haskell-base-orphans (0.8.2-1-deepin1) unstable; urgency=medium
+haskell-base-orphans (0.8.7-1) unstable; urgency=medium
 
-  * Rebuild
+  * Declare compliance with Debian policy 4.6.1
+  * Remove retired developer, Joachim Breitner, from Uploaders.
+  * New upstream release
 
- -- Deepin Packages Builder <packages@deepin.org>  Thu, 24 Nov 2022 07:19:48 +0800
+ -- Ilias Tsitsimpis <iliastsi@debian.org>  Fri, 21 Oct 2022 20:53:36 +0300
+
+haskell-base-orphans (0.8.6-1) unstable; urgency=medium
+
+  * New upstream release
+
+ -- Clint Adams <clint@debian.org>  Tue, 14 Jun 2022 14:41:52 -0400
 
 haskell-base-orphans (0.8.2-1) unstable; urgency=medium
 
